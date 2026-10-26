@@ -12,3 +12,6 @@ learning_log/
 
 # macOS
 .DS_Store
+
+# 会話履歴は登録しないようにする
+/lectures/01/ask-history.json
