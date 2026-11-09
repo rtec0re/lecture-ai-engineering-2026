@@ -5,6 +5,7 @@
 """
 
 import json
+import random
 from functools import cache
 from pathlib import Path
 
@@ -71,9 +72,50 @@ def get_lecture_summary(lecture: int) -> str:
     """指定した回（1始まりの整数）の講義の要点を返す。
 
     「第3回では何を学ぶ？」のように、回の内容や関係を聞かれたときに使う。
+    類似要点は1つにまとめ、簡潔にする。
     """
     path = DATA_DIR / "lectures" / f"{lecture:02d}.md"
     if not path.exists():
         available = sorted(p.stem for p in (DATA_DIR / "lectures").glob("*.md"))
         return f"第{lecture}回の要点はまだありません。用意されている回: {', '.join(available)}"
     return path.read_text(encoding="utf-8")
+
+
+def make_quiz(lecture: int) -> str:
+    """指定した回の用語から 1つを選び、確認問題と答えを返す。
+
+    「第2回の確認問題を出して」のように、復習用の問題を求められたときに使う。
+    """
+    # 1. load_glossary() から lecture が一致する用語を集める
+    # 2. 1 つ選ぶ（random.choice）
+    # 3. 問題と答えを文字列で返す（ json.dumps など）
+
+    glossary = load_glossary()
+    path = DATA_DIR / "lectures" / f"{lecture:02d}.md"
+    if not path.exists():
+        available = sorted(p.stem for p in (DATA_DIR / "lectures").glob("*.md"))
+        return f"第{lecture}回の用語はまだありません。用意されている回: {', '.join(available)}"
+
+    quiz = random.choice([e for e in glossary if e["lecture"] == lecture])
+    
+    return json.dumps(
+        [
+            {
+                "quiz": quiz["term"],
+                "answer": quiz["definition"],
+            }
+        ],
+        ensure_ascii=False,
+    )
+
+def save_learning_log(context:str, lecture: int) -> str:
+    """指定した回の学習ログをlearning/logフォルダに保存する。
+
+    「学習ログを保存して」のように、agent呼び出しで学んだ内容を記録するために使う。
+    ただし、毎回保存の確認を取ること。
+    """
+    path = DATA_DIR / "learning_log" / f"{lecture:02d}.log"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    log_content = f"第{lecture}回の学習ログ: 学習内容や感想などをここに記録します。" + f"\n\n{context}"
+    path.write_text(log_content, encoding="utf-8")
+    return f"第{lecture}回の学習ログを {path} に保存しました。"
